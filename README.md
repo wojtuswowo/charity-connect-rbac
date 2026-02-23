@@ -3,9 +3,9 @@
 
 # Charity Connect
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![Flask](https://img.shields.io/badge/Flask-2.x-black.svg)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-2.x-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
 Charity Connect is a role-based charity management web application built with Flask.
 It connects donors, beneficiaries, organization workers, and administrators within a structured project workflow.

@@ -1,0 +1,333 @@
+﻿<div class="max-w-6xl mx-auto p-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Panel Darczyńcy</h2>
+            <p class="text-slate-500 mt-1">Przeglądaj aktywne projekty lub zarządzaj własną pomocą</p>
+        </div>
+
+        <button onclick="openCreateModal()"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span>Dodaj nową ofertę</span>
+        </button>
+    </div>
+
+    <div class="flex bg-slate-100 p-1.5 rounded-2xl w-full max-w-md mb-8">
+        <button onclick="switchDonorTab('all-projects')" id="tab-all"
+                class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm">
+            Aktywne Projekty
+        </button>
+
+        {# Obliczanie liczby ofert tylko w aktywnych projektach #}
+        {% set active_offers_count = current_user.offers | selectattr('project.status', 'equalto', 'active') | list | length %}
+
+        <button onclick="switchDonorTab('my-offers')" id="tab-my"
+                class="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all text-slate-500 hover:text-slate-700">
+            Moje Oferty ({{ active_offers_count }})
+        </button>
+    </div>
+
+    <div id="view-all-projects" class="space-y-8">
+        {% for project in projects if project.status == 'active' %}
+        <div class="bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div class="p-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">Projekt Aktywny</span>
+                        <h3 class="text-2xl font-black text-slate-800 mt-1">{{ project.title }}</h3>
+                    </div>
+                    <button onclick="toggleOffers('offers-{{ project.id }}', this)"
+                            class="text-indigo-600 hover:text-indigo-800 text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all">
+                        <span class="btn-text">Pokaż oferty</span>
+                        <svg class="w-4 h-4 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-slate-600 mt-4 text-sm leading-relaxed max-w-3xl">{{ project.description }}</p>
+            </div>
+
+            <div id="offers-{{ project.id }}" class="hidden p-6 bg-slate-50/50 border-t border-slate-100">
+                <div class="space-y-3">
+                    {% set approved_offers = project.offers|selectattr('status', 'equalto', 'approved')|list %}
+                    {% for offer in approved_offers %}
+                    <div class="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:border-indigo-200 transition-all">
+                        <div class="flex items-center gap-4">
+                            <div class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase">{{ offer.offer_type }}</div>
+                            <span class="font-bold text-slate-700">{{ offer.title }}</span>
+                        </div>
+                        <button onclick="openDetailsOnlyModal('{{ offer.title|e }}', '{{ offer.description|e }}', '{{ offer.offer_type }}')"
+                                class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all border border-slate-100">
+                            Szczegóły
+                        </button>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-xs text-slate-400 py-4 italic">Brak zatwierdzonych ofert w tym projekcie.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="view-my-offers" class="hidden space-y-8">
+        {% set active_only_offers = current_user.offers | selectattr('project.status', 'equalto', 'active') | list %}
+
+        {% if active_only_offers | length > 0 %}
+        {% for project_title, project_offers in active_only_offers | groupby('project.title') %}
+        <div class="bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm">
+            <div class="p-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">Twój wkład w projekt</span>
+                        <h3 class="text-2xl font-black text-slate-800 mt-1">{{ project_title }}</h3>
+                    </div>
+                    <button onclick="toggleOffers('my-project-{{ loop.index }}', this)"
+                            class="text-indigo-600 hover:text-indigo-800 text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all">
+                        <span class="btn-text">Pokaż moje oferty ({{ project_offers|length }})</span>
+                        <svg class="w-4 h-4 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="my-project-{{ loop.index }}" class="hidden p-6 bg-slate-50/50 border-t border-slate-100 space-y-6">
+                {% for offer in project_offers %}
+                <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                    <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase">{{ offer.offer_type }}</div>
+                            <h3 class="text-xl font-black text-slate-800">{{ offer.title }}</h3>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border
+                                {% if offer.status == 'approved' %} bg-green-50 text-green-600 border-green-100
+                                {% elif offer.status == 'pending' %} bg-amber-50 text-amber-600 border-amber-100
+                                {% else %} bg-rose-50 text-rose-600 border-rose-100 {% endif %}">
+                                {% if offer.status == 'approved' %}Zatwierdzona{% elif offer.status == 'pending' %}Oczekująca{% else %}Zakończono{% endif %}
+                            </span>
+
+                            <div class="flex gap-2 border-l pl-4 border-slate-100">
+                                <button onclick="openEditModal('{{ offer.id }}', '{{ offer.title|e }}', '{{ offer.description|e }}', '{{ offer.offer_type }}', '{{ offer.project_id }}')"
+                                        class="px-4 py-2 text-sm font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-indigo-100">
+                                    Szczegóły / Edytuj
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-slate-50/30">
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Otrzymane wnioski:</h4>
+                        <div class="space-y-3">
+                            {% for app in offer.applications %}
+                            <div class="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                                <div>
+                                    <p class="text-sm font-bold text-slate-700">{{ app.applicant.email }}</p>
+                                    <p class="text-xs text-slate-500 mt-1 italic">"{{ app.message }}"</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    {% if app.status == 'pending' %}
+                                    <form action="{{ url_for('main.accept_application', app_id=app.id) }}" method="POST">
+                                        <button type="submit" class="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase rounded-lg hover:bg-green-700 transition-all">Akceptuj</button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-[10px] font-black uppercase {{ 'text-green-600' if app.status == 'accepted' else 'text-red-500' }}">
+                                        {{ 'Zaakceptowano' if app.status == 'accepted' else 'Odrzucono' }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <p class="text-xs text-slate-400 italic py-2 text-center">Brak wniosków dla tej oferty.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
+            <p class="text-slate-400 font-medium">Nie masz obecnie ofert w aktywnych projektach.</p>
+            <button onclick="openCreateModal()" class="mt-4 text-indigo-600 font-bold hover:underline">Dodaj nową ofertę pomocową</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="detailsOnlyModal" class="hidden fixed inset-0 z-[130] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeDetailsOnlyModal()"></div>
+    <div class="relative bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden p-8">
+        <div class="mb-6">
+            <span id="detType" class="text-[10px] font-black uppercase tracking-widest text-indigo-500"></span>
+            <h2 id="detTitle" class="text-2xl font-black text-slate-800 mt-1"></h2>
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-6 mb-8">
+            <p id="detDescription" class="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap"></p>
+        </div>
+
+        <button onclick="closeDetailsOnlyModal()"
+                class="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all">
+            Zamknij podgląd
+        </button>
+    </div>
+</div>
+
+<div id="createOfferModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeCreateModal()"></div>
+    <div class="relative bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden">
+        <form id="offerForm" action="{{ url_for('main.create_offer') }}" method="POST" class="p-8">
+            <div class="mb-6">
+                <h2 id="modalOfferTitle" class="text-2xl font-black text-slate-800">Nowa oferta pomocy</h2>
+                <p class="text-sm text-slate-500 mt-1">Twoje ogłoszenie zostanie zweryfikowane przez pracownika.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Wybierz aktywny projekt</label>
+                    <select name="project_id" id="projectSelect" required
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-slate-700">
+                        <option value="" disabled selected>Wybierz projekt...</option>
+                        {% for project in projects if project.status == 'active' %}
+                        <option value="{{ project.id }}">{{ project.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Tytuł ogłoszenia</label>
+                    <input type="text" name="title" id="offerTitleInput" required placeholder="np. Ciepłe koce..."
+                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Typ pomocy</label>
+                    <select name="type" id="typeSelect" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold">
+                        <option value="rzeczowa">Rzeczowa (przedmioty)</option>
+                        <option value="usługa">Usługa (wolontariat)</option>
+                        <option value="finansowa">Finansowa</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Opis szczegółowy</label>
+                    <textarea name="description" id="descriptionInput" rows="4" required placeholder="Opisz pomoc..."
+                              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-8 flex flex-col sm:flex-row-reverse gap-3">
+                <button type="submit" id="submitButton" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                    Opublikuj ofertę
+                </button>
+                <button type="button" onclick="closeCreateModal()" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all">
+                    Anuluj
+                </button>
+                <button type="button" id="deleteOfferBtn" onclick="confirmDeleteFromModal()" class="hidden flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-all border border-red-100">
+                    Usuń ofertę
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentEditingId = null;
+
+    function switchDonorTab(tabName) {
+        const allProj = document.getElementById('view-all-projects');
+        const myOff = document.getElementById('view-my-offers');
+        const tabAll = document.getElementById('tab-all');
+        const tabMy = document.getElementById('tab-my');
+
+        if (tabName === 'all-projects') {
+            allProj.classList.remove('hidden');
+            myOff.classList.add('hidden');
+            tabAll.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+            tabAll.classList.remove('text-slate-500');
+            tabMy.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+            tabMy.classList.add('text-slate-500');
+        } else {
+            allProj.classList.add('hidden');
+            myOff.classList.remove('hidden');
+            tabMy.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+            tabMy.classList.remove('text-slate-500');
+            tabAll.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+            tabAll.classList.add('text-slate-500');
+        }
+    }
+
+    function toggleOffers(id, btn) {
+        const content = document.getElementById(id);
+        if (!content) return;
+
+        const svg = btn.querySelector('svg');
+        const text = btn.querySelector('.btn-text');
+        const isHidden = content.classList.contains('hidden');
+
+        if (isHidden) {
+            content.classList.remove('hidden');
+            if (svg) svg.classList.add('rotate-180');
+            if (text) text.innerText = text.innerText.replace('Pokaż', 'Ukryj');
+        } else {
+            content.classList.add('hidden');
+            if (svg) svg.classList.remove('rotate-180');
+            if (text) text.innerText = text.innerText.replace('Ukryj', 'Pokaż');
+        }
+    }
+
+    function openCreateModal() {
+        const form = document.getElementById('offerForm');
+        form.reset();
+        currentEditingId = null;
+        form.action = "{{ url_for('main.create_offer') }}";
+        document.getElementById('modalOfferTitle').innerText = "Nowa oferta pomocy";
+        document.getElementById('submitButton').innerText = "Opublikuj ofertę";
+        document.getElementById('deleteOfferBtn').classList.add('hidden');
+        document.getElementById('createOfferModal').classList.remove('hidden');
+    }
+
+    function openEditModal(id, title, desc, type, projectId) {
+        const form = document.getElementById('offerForm');
+        currentEditingId = id;
+        form.action = `/offer/${id}/edit`;
+        document.getElementById('offerTitleInput').value = title;
+        document.getElementById('descriptionInput').value = desc;
+        document.getElementById('typeSelect').value = type;
+        document.getElementById('projectSelect').value = projectId;
+        document.getElementById('modalOfferTitle').innerText = "Edytuj ofertę";
+        document.getElementById('submitButton').innerText = "Zapisz zmiany";
+        document.getElementById('deleteOfferBtn').classList.remove('hidden');
+        document.getElementById('createOfferModal').classList.remove('hidden');
+    }
+
+    function closeCreateModal() {
+        document.getElementById('createOfferModal').classList.add('hidden');
+    }
+
+    function confirmDeleteFromModal() {
+        if (currentEditingId && confirm('Czy na pewno chcesz usunąć tę ofertę?')) {
+            const tempForm = document.createElement('form');
+            tempForm.method = 'POST';
+            tempForm.action = `/offer/${currentEditingId}/delete`;
+            document.body.appendChild(tempForm);
+            tempForm.submit();
+        }
+    }
+
+    function openDetailsOnlyModal(title, desc, type) {
+        document.getElementById('detTitle').innerText = title;
+        document.getElementById('detDescription').innerText = desc;
+        document.getElementById('detType').innerText = type;
+        document.getElementById('detailsOnlyModal').classList.remove('hidden');
+    }
+
+    function closeDetailsOnlyModal() {
+        document.getElementById('detailsOnlyModal').classList.add('hidden');
+    }
+</script>

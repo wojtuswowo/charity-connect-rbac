@@ -1,0 +1,285 @@
+﻿<div class="max-w-6xl mx-auto p-6">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Panel Operacyjny</h2>
+            <p class="text-slate-500 mt-1">Zarządzanie projektami i weryfikacja zgłoszeń</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ url_for('main.pending_users') }}"
+               class="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center gap-2 shadow-sm">
+                Oczekujące konta
+            </a>
+
+            {% set total_pending = 0 %}
+            {% for p in projects %}
+            {% set total_pending = total_pending + (p.offers|selectattr('status', 'equalto', 'pending')|list|length) %}
+            {% endfor %}
+
+            <button onclick="document.getElementById('pendingOffersModal').classList.remove('hidden')"
+                    class="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all text-sm flex items-center gap-2 shadow-sm relative">
+                Oczekujące oferty
+                {% if total_pending > 0 %}
+                <span class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-lg animate-pulse">
+                    {{ total_pending }}
+                </span>
+                {% endif %}
+            </button>
+            <button onclick="document.getElementById('inquiriesModal').classList.remove('hidden')"
+                class="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-all text-sm shadow-sm relative">
+                    Zapytania gości
+                    {% if inquiries|length > 0 %}
+                    <span class="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
+                        {{ inquiries|length }}
+                    </span>
+                    {% endif %}
+                </button>
+
+            <button onclick="document.getElementById('addProjectModal').classList.remove('hidden')"
+                    class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all text-sm">
+                Dodaj Projekt
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8">
+        {% for project in projects %}
+        <div class="bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div class="p-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 pr-4">
+                        <div class="flex items-center gap-3 mb-2">
+                            <h3 class="text-2xl font-black text-slate-800">{{ project.title }}</h3>
+                            {% if project.status == 'active' %}
+                            <span class="bg-green-100 text-green-700 text-[9px] font-black uppercase px-2 py-1 rounded-lg">Aktywny</span>
+                            {% else %}
+                            <span class="bg-slate-200 text-slate-600 text-[9px] font-black uppercase px-2 py-1 rounded-lg">Zakończony</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-slate-600 text-sm leading-relaxed max-w-2xl">
+                            {{ project.description }}
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col items-end gap-3 shrink-0">
+                        {% if project.status == 'active' %}
+                        <form action="{{ url_for('main.finish_project', project_id=project.id) }}" method="POST"
+                              onsubmit="return confirm('Czy na pewno chcesz zakończyć ten projekt?');">
+                            <button type="submit" class="px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all border border-rose-100 shadow-sm">
+                                Zakończ projekt
+                            </button>
+                        </form>
+                        {% else %}
+                        <button onclick="openRatingModal('{{ project.id }}', '{{ project.title|e }}')"
+                                class="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                            Oceń współpracę
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full py-20 text-center border-2 border-dashed border-slate-100 rounded-[3rem]">
+            <p class="text-slate-400 font-medium text-sm">Brak zdefiniowanych projektów.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div id="pendingOffersModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="this.parentElement.classList.add('hidden')"></div>
+    <div class="relative bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+            <h3 class="text-xl font-black text-slate-800">Oferty do zatwierdzenia</h3>
+            <button onclick="document.getElementById('pendingOffersModal').classList.add('hidden')" class="text-slate-400 text-2xl hover:text-slate-600 transition-colors">&times;</button>
+        </div>
+        <div class="p-8 overflow-y-auto space-y-8 bg-slate-50/30">
+            {% set has_any_pending = false %}
+            {% for project in projects %}
+            {% set p_offers = project.offers|selectattr('status', 'equalto', 'pending')|list %}
+            {% if p_offers|length > 0 %}
+            {% set has_any_pending = true %}
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Projekt: {{ project.title }}</h4>
+                <div class="space-y-3">
+                    {% for offer in p_offers %}
+                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div class="flex-1">
+                            <span class="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[9px] font-bold rounded uppercase">{{ offer.offer_type }}</span>
+                            <p class="font-bold text-slate-800 text-sm mt-1">{{ offer.title }}</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Darczyńca: {{ offer.donor.email }}</p>
+                        </div>
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <form action="{{ url_for('main.approve_offer', offer_id=offer.id) }}" method="POST">
+                                <button type="submit" class="bg-green-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-green-700 transition-all">Zatwierdź</button>
+                            </form>
+                            <form action="{{ url_for('main.reject_offer', offer_id=offer.id) }}" method="POST">
+                                <button type="submit" class="bg-white border border-rose-200 text-rose-500 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-rose-50 transition-all">Odrzuć</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div id="addProjectModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="this.parentElement.classList.add('hidden')"></div>
+    <div class="relative bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
+        <h2 class="text-2xl font-black text-slate-800 mb-6">Uruchom Nowy Projekt</h2>
+        <form action="{{ url_for('main.create_project') }}" method="POST" class="space-y-5">
+            <div>
+                <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Nazwa projektu</label>
+                <input type="text" name="title" required class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Opis projektu</label>
+                <textarea name="description" rows="5" required class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all"></textarea>
+            </div>
+            <div class="pt-2 flex gap-3">
+                <button type="submit" class="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all">Opublikuj projekt</button>
+                <button type="button" onclick="document.getElementById('addProjectModal').classList.add('hidden')" class="px-6 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all">Anuluj</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="ratingModal" class="hidden fixed inset-0 z-[130] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeRatingModal()"></div>
+    <div class="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div class="p-8 border-b border-slate-100 bg-white">
+            <h3 class="text-xl font-black text-slate-800">Finalizacja Projektu</h3>
+            <p class="text-sm text-slate-500 mt-1">Oceń jakość pomocy w projekcie: <span id="ratingProjectTitle" class="font-bold text-indigo-600"></span></p>
+        </div>
+
+        <div class="p-8 overflow-y-auto bg-slate-50/30 space-y-6">
+            <div id="donorsListContainer">
+                {% for project in projects %}
+                <div id="donors-for-project-{{ project.id }}" class="project-donors-group hidden space-y-6">
+
+                    {% set displayed_donors = [] %}
+                    {% set ns = namespace(has_apps=false) %}
+
+                    {% for offer in project.offers %}
+                    {% for app in offer.applications if app.status == 'accepted' %}
+                    {# Sprawdzamy, czy darczyńca był już wyświetlony w tym projekcie #}
+                    {% if offer.donor_id not in displayed_donors %}
+                    {% set _ = displayed_donors.append(offer.donor_id) %}
+                    {% set ns.has_apps = true %}
+
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 font-black">
+                                {{ offer.donor.email[0]|upper }}
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-slate-800">{{ offer.donor.email }}</p>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">Status: Aktywny Darczyńca</p>
+                            </div>
+                        </div>
+
+                        <form action="{{ url_for('main.rate_interaction', app_id=app.id) }}" method="POST" class="space-y-4">
+                            <div>
+                                <label class="block text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Ocena procesu (1 - słabo, 5 - wzorowo)</label>
+                                <div class="flex gap-2">
+                                    {% for i in range(1, 6) %}
+                                    <label class="flex-1 cursor-pointer">
+                                        <input type="radio" name="score" value="{{ i }}" class="peer hidden" required>
+                                        <div class="py-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-400 text-center font-black transition-all peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-indigo-100">
+                                            {{ i }}
+                                        </div>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black uppercase text-slate-400 mb-2 tracking-widest">Notatka służbowa</label>
+                                <textarea name="comment" placeholder="Krótki opis przebiegu współpracy..."
+                                          class="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-all" rows="2"></textarea>
+                            </div>
+
+                            <button type="submit" class="w-full py-4 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-900 transition-all shadow-md">
+                                Zatwierdź ocenę
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% endfor %}
+
+                    {% if not ns.has_apps %}
+                    <div class="text-center py-10">
+                        <p class="text-slate-400 text-sm italic">W tym projekcie nie było żadnych zaakceptowanych zgłoszeń do oceny.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-slate-100 bg-white">
+            <button onclick="closeRatingModal()" class="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all">
+                Zamknij podgląd
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="inquiriesModal" class="hidden fixed inset-0 z-[115] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="this.parentElement.classList.add('hidden')"></div>
+
+    <div class="relative bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+        <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
+            <h3 class="text-xl font-black text-slate-800">Zapytania od gości</h3>
+            <button onclick="document.getElementById('inquiriesModal').classList.add('hidden')" class="text-slate-400 text-2xl hover:text-slate-600">&times;</button>
+        </div>
+
+        <div class="p-8 overflow-y-auto space-y-6 bg-slate-50/30">
+            {% if inquiries %}
+                {% for inquiry in inquiries %}
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <p class="font-bold text-slate-800 text-sm">{{ inquiry.name }}</p>
+                            <p class="text-[11px] text-slate-400">{{ inquiry.email }}</p>
+                        </div>
+                        <span class="text-[10px] text-slate-400">
+                            {{ inquiry.created_at.strftime('%d.%m.%Y %H:%M') }}
+                        </span>
+                    </div>
+                    <p class="text-slate-600 text-sm leading-relaxed">{{ inquiry.message }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-16">
+                    <p class="text-slate-400 text-sm">Brak zapytań od gości.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function openRatingModal(projectId, projectTitle) {
+        document.getElementById('ratingProjectTitle').innerText = projectTitle;
+        // Ukryj wszystkie grupy darczyńców
+        document.querySelectorAll('.project-donors-group').forEach(group => group.classList.add('hidden'));
+        // Pokaż grupę odpowiadającą ID projektu
+        const target = document.getElementById(`donors-for-project-${projectId}`);
+        if (target) {
+            target.classList.remove('hidden');
+        }
+        // Pokaż modal
+        document.getElementById('ratingModal').classList.remove('hidden');
+    }
+
+    function closeRatingModal() {
+        document.getElementById('ratingModal').classList.add('hidden');
+    }
+</script>

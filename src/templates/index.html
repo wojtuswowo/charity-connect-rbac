@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Main{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <main class="container mx-auto" style="max-height: 100%">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div id="flash-messages" class="fixed bottom-5 left-5 z-50 flex flex-col gap-3">
+        {% for category, message in messages %}
+        <div class="alert-toast p-4 rounded-lg shadow-lg border-l-4 min-w-[250px] animate-bounce-short
+            {% if category == 'success' %} bg-green-100 border-green-500 text-green-800
+            {% elif category == 'error' %} bg-red-100 border-red-500 text-red-800
+            {% else %} bg-blue-100 border-blue-500 text-blue-800 {% endif %}">
+
+            <div class="flex justify-between items-center">
+                <span>{{ message }}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 font-bold opacity-50 hover:opacity-100">&times;</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        setTimeout(() => {
+            const messages = document.getElementById('flash-messages');
+            if (messages) {
+                messages.style.transition = "opacity 0.5s ease";
+                messages.style.opacity = "0";
+                setTimeout(() => messages.remove(), 500);
+            }
+        }, 5000);
+    </script>
+    {% endif %}
+    {% endwith %}
+
+</body>
+</html>

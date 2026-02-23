@@ -1,0 +1,131 @@
+﻿{% extends "index.html" %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-[90vh] px-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative border border-gray-100">
+
+        <div class="p-8 pb-4">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">Charity Connect</h1>
+                <p class="text-sm text-gray-500 mt-2">Pomagaj, wspieraj, zmieniaj świat</p>
+            </div>
+
+            <div class="relative flex bg-gray-100 rounded-2xl p-1.5 h-14 items-center">
+                <div id="switch-bg"
+                     class="absolute inset-y-1.5 left-1.5 w-[calc(50%-6px)] bg-blue-600 rounded-xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-md">
+                </div>
+
+                <button onclick="toggleAuth('login')" id="btn-login"
+                        class="z-10 w-1/2 h-full text-sm font-bold transition-colors duration-300 text-white">
+                    Logowanie
+                </button>
+                <button onclick="toggleAuth('register')" id="btn-register"
+                        class="z-10 w-1/2 h-full text-sm font-bold transition-colors duration-300 text-gray-500">
+                    Rejestracja
+                </button>
+            </div>
+        </div>
+
+        <div class="flex w-[200%] transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]" id="forms-container">
+
+            <!-- LOGIN -->
+            <div class="w-1/2 p-8 pt-2 flex-shrink-0">
+                <form id="loginForm" method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                        <input type="email" name="email" required
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Hasło</label>
+                        <input type="password" name="password" required
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                    </div>
+                    <button type="submit"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] mt-2">
+                        Zaloguj się
+                    </button>
+                </form>
+            </div>
+
+            <!-- REGISTER -->
+            <div class="w-1/2 p-8 pt-2 flex-shrink-0">
+                <form id="registerForm" method="POST" action="{{ url_for('auth.register') }}" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase ml-1 mb-1">Imię</label>
+                            <input type="text" name="first_name" required
+                                   class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase ml-1 mb-1">Nazwisko</label>
+                            <input type="text" name="last_name" required
+                                   class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase ml-1 mb-1">Email (Login)</label>
+                        <input type="email" name="email" required
+                               class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase ml-1 mb-1">Rola</label>
+                        <select name="role" required
+                                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none bg-white transition-all appearance-none cursor-pointer">
+                            <option value="donor">Darczyńca</option>
+                            <option value="beneficient">Beneficjent</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase ml-1 mb-1">Hasło</label>
+                        <input type="password" name="password" required
+                               class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all">
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] mt-2">
+                        Zarejestruj się
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- 🔹 GUEST BUTTON -->
+        <div class="text-center mt-6">
+            <a href="{{ url_for('main.guest_dashboard') }}"
+                class="text-blue-600 font-semibold hover:underline">
+            Kontynuuj jako gość
+        </a>
+</div>
+
+
+    </div>
+</div>
+
+<script>
+    function toggleAuth(type) {
+        const container = document.getElementById('forms-container');
+        const switchBg = document.getElementById('switch-bg');
+        const btnLogin = document.getElementById('btn-login');
+        const btnRegister = document.getElementById('btn-register');
+
+        if (type === 'login') {
+            container.style.transform = 'translateX(0%)';
+            switchBg.style.transform = 'translateX(0%)';
+            switchBg.classList.replace('bg-green-600', 'bg-blue-600');
+            btnLogin.classList.replace('text-gray-500', 'text-white');
+            btnRegister.classList.replace('text-white', 'text-gray-500');
+        } else {
+            container.style.transform = 'translateX(-50%)';
+            switchBg.style.transform = 'translateX(100%)';
+            switchBg.classList.replace('bg-blue-600', 'bg-green-600');
+            btnRegister.classList.replace('text-gray-500', 'text-white');
+            btnLogin.classList.replace('text-white', 'text-gray-500');
+        }
+    }
+</script>
+{% endblock %}

@@ -98,7 +98,7 @@ Workers can review received inquiries in their panel.
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/your-username/charity-connect.git
+git clone https://github.com/your-username/charity-connect-rbac.git
 cd charity-connect
 ```
 
